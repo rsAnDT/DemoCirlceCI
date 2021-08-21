@@ -130,9 +130,9 @@ commands:
           name: Build flutter app
           command: |
             case << parameters.build_type >> in
-              "alpha" ) $FLUTTER_HOME/bin/flutter build ios --release --no-codesign --flavor development -t lib/main/main_development.dart ;;
-              "beta" ) $FLUTTER_HOME/bin/flutter build ios --release --no-codesign --flavor staging -t lib/main/main_staging.dart ;;
-              "production" ) $FLUTTER_HOME/bin/flutter build ios --release --no-codesign --flavor production -t lib/main/main_production.dart ;;
+              "alpha" ) $FLUTTER_HOME/bin/flutter build ios --release;;
+              "beta" ) $FLUTTER_HOME/bin/flutter build ios --release;;
+              "production" ) $FLUTTER_HOME/bin/flutter build ios --release;;
             esac
       - run:
           name: Generate signed ipa file and distribute
@@ -179,9 +179,9 @@ commands:
           name: Build flutter app
           command: |
             case << parameters.build_type >> in
-              "alpha" ) $FLUTTER_HOME/bin/flutter build apk --release --flavor development -t lib/main/main_development.dart ;;
-              "beta" ) $FLUTTER_HOME/bin/flutter build apk --release --flavor staging -t lib/main/main_staging.dart ;;
-              "production" ) $FLUTTER_HOME/bin/flutter build appbundle --release --flavor production -t lib/main/main_production.dart ;;
+              "alpha" ) $FLUTTER_HOME/bin/flutter build apk --release ;;
+              "beta" ) $FLUTTER_HOME/bin/flutter build apk --release ;;
+              "production" ) $FLUTTER_HOME/bin/flutter build appbundle --release ;;
             esac
           working_directory: ~/project
       - run:
