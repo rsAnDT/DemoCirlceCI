@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:async/async.dart';
+import 'package:boolean_selector/boolean_selector.dart';
 
 void main() {
   runApp(MyApp());
