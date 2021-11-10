@@ -1,0 +1,111 @@
+TEAM_ID = 'S7A2944694'
+
+BUNDLE_ID_DEV = 'vn.vinwonders'
+
+PROVISIONING_PROFILE_NAME_DEV = 'VinWonders Development Ad Hoc'
+
+SCHEME_DEV = 'Runner'
+
+EXPORT_METHOD_AD_HOC = 'ad-hoc'
+
+WORKSPACE_NAME = 'Runner.xcworkspace';
+
+XCODE_PROJ = 'Runner.xcodeproj'
+
+default_platform(:ios)
+
+platform :ios do
+
+  before_all do
+    setup_circle_ci
+  end
+
+  desc "Publish the iOS Alpha Version"
+  lane :publish_alpha do
+    setup_provisioning_profiles
+    build_application(
+      team_id: TEAM_ID,
+      scheme: SCHEME_DEV,
+      export_method: EXPORT_METHOD_AD_HOC,
+      bundle_id: BUNDLE_ID_DEV,
+      provisioning_profile_name: PROVISIONING_PROFILE_NAME_DEV
+    )
+  end
+
+  lane :diawiUpload do |options|
+   _fileUpload = options[:fileUpload]
+   diawi(
+    token: "YCRm7dak4wIcE0DcqPZWI1KqVWTT5gN8Q8zCg4Q140",
+    file: _fileUpload,
+    wall_of_apps: false,
+    password: "BanCuaAn",
+    callback_emails: "tupa1@runsystem.net, huypq1@runsystem.net",
+    check_status_delay: 30
+   )
+  $diawiUrl = lane_context[SharedValues::UPLOADED_FILE_LINK_TO_DIAWI]
+  $diawiUrl
+  end
+
+  lane :chatworkNotificationTeamA do |options|
+     urlIOS = options[:diawiUrlIOS]
+     chatwork(
+      message: "📣 📣 📣[To:5449028] [To:5651994]\nBản build IOS trên xcode 13. Anh em cài thử.\nIOS: "+urlIOS+"\nPassword: BanCuaAn",
+      roomid: 205472537,
+      success: true,
+      api_token: "ce50ff370f4599a5f974dbde809c87aa"
+     )
+  end
+
+  # P R I V A T E   L A N E S
+
+  desc "Install the Signing Credentials"
+  private_lane :setup_provisioning_profiles do |options|
+    next unless Helper.ci?
+
+    `curl -OL https://developer.apple.com/certificationauthority/AppleWWDRCA.cer`
+    import_certificate(
+      keychain_name: 'fastlane_tmp_keychain',
+      certificate_path: 'fastlane/cert/Certificates.p12',
+      certificate_password: '')
+    import_certificate(
+      keychain_name: 'fastlane_tmp_keychain',
+      certificate_path: 'fastlane/AppleWWDRCA.cer')
+
+    Dir.glob('cert/*.mobileprovision').each {|filename|
+      puts filename
+      FastlaneCore::ProvisioningProfile.install(filename)
+    }
+  end
+
+  desc "Build signed ipa file"
+  private_lane :build_application do |options|
+  _path_workspace = sh("cd .. && ./currentPath.sh " + WORKSPACE_NAME, log: false)
+  _path_xcodeproj = sh("cd .. && ./currentPath.sh " + XCODE_PROJ, log: false)
+  _pathIOS = _path_workspace.split("\n")
+  _pathIOS_xcodeproj = _path_xcodeproj.split("\n")
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: _pathIOS_xcodeproj[0],
+      profile_name: options[:provisioning_profile_name],
+      team_id: TEAM_ID
+    )
+
+    build_app(
+      scheme: SCHEME_DEV,
+      export_method: "ad-hoc",
+      workspace: _pathIOS[0],
+      clean: true,
+      export_options: {
+        provisioningProfiles: {
+          BUNDLE_ID_DEV => PROVISIONING_PROFILE_NAME_DEV
+        }
+      },
+      xcargs: "DEVELOPMENT_TEAM='S7A2944694' PROVISIONING_PROFILE_SPECIFIER='VinWonders Development Ad Hoc'"
+    )
+    _ipa = lane_context[SharedValues::IPA_OUTPUT_PATH]
+    puts "ipa = " + _ipa
+    result = diawiUpload(fileUpload: _ipa)
+    chatworkNotificationTeamA(diawiUrlIOS: _resultIOS)
+  end
+end
