@@ -109,8 +109,13 @@ jobs:
         default: alpha_company
     steps:
       - checkout
-      - run: echo "build on tag=\"<< parameters.build_type >>\""
+      - run:
+          name: chmod
+          command: chmod +x build.sh
       - run: echo "build on tag=\"<< pipeline.git.tag >>\""
+      - run:
+          name: run sh build
+          command: bash build.sh << pipeline.git.tag >>
 #      - install_ruby_gems_android
 #      - setup_submodule
 #      - install_dart_packages
