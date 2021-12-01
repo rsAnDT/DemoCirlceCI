@@ -1,0 +1,227 @@
+version: 2.1
+
+# E X E C U T O R S
+
+executors:
+
+  default_android:
+    shell: /bin/bash --login -eo pipefail
+    environment:
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+    docker:
+      - image: cirrusci/flutter:2.2.3
+
+  default_ios:
+    shell: /bin/bash --login -eo pipefail
+    environment:
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+    macos:
+      # https://circleci.com/docs/2.0/testing-ios/#supported-xcode-versions
+      xcode: 13.1.0
+
+# C O M M A N D S
+
+commands:
+
+  # Common commands
+
+  install_dart_packages:
+    steps:
+      - run:
+          name: Install Dart Packages
+          command: $FLUTTER_HOME/bin/flutter pub get
+
+  # Only Lint Commands
+
+  restore_dart_package_cache:
+    steps:
+      - restore_cache:
+          keys:
+            - dart-dependencies-{{ checksum "pubspec.lock" }}
+            - dart-dependencies-
+
+  save_dart_package_cache:
+    steps:
+      - save_cache:
+          paths:
+            - .dart_tool/build
+          key: dart-dependencies-{{ checksum "pubspec.lock" }}
+
+  install_ruby_gems:
+    steps:
+      - run:
+          name: Update bundler
+          command: bundle update --bundler
+      - run:
+          name: Run bundle install
+          command: bundle install --path vendor/bundle
+
+  run_danger:
+    steps:
+      - run:
+          name: Run flutter analyze
+          command: $FLUTTER_HOME/bin/flutter analyze > flutter_analyze_report.txt || true
+      - store_artifacts:
+          path: flutter_analyze_report.txt
+      - run:
+          name: Run Danger
+          command: bundle exec danger
+
+  # Only iOS Deployment Commands
+
+  install_flutter:
+    steps:
+      - run:
+          name: Install flutter SDK
+          command: mkdir -p ~/sdks/flutter && git clone -b stable https://github.com/flutter/flutter.git --branch=1.22.6 ~/sdks/flutter
+      - run:
+          name: Set flutter SDK PATH in bash
+          command: echo 'export FLUTTER_HOME=~/sdks/flutter' >> $BASH_ENV && source $BASH_ENV
+      - run:
+          name: Try doctor
+          command: $FLUTTER_HOME/bin/flutter doctor
+
+  update_fastlane:
+    steps:
+      - run:
+          name: Update Fastlane
+          command: bundle update fastlane
+
+  update_plugin:
+    steps:
+      - run:
+          name: Update Plugin
+          command: bundle exec fastlane update_plugins
+
+  publish_ipa:
+    parameters:
+      build_type:
+        type: enum
+        enum: ['alpha', 'beta', 'production']
+        default: alpha
+    steps:
+      - run:
+          name: Build flutter app
+          command: |
+            case << parameters.build_type >> in
+              "alpha" ) $FLUTTER_HOME/bin/flutter build ios --release;;
+              "beta" ) $FLUTTER_HOME/bin/flutter build ios --release;;
+              "production" ) $FLUTTER_HOME/bin/flutter build ios --release;;
+            esac
+      - run:
+          name: Generate signed ipa file and distribute
+          command: bundle exec fastlane publish_<< parameters.build_type >>
+          working_directory: ~/project/ios
+      - store_artifacts:
+          path: ~/project/ios/Runner.ipa
+      - store_artifacts:
+          path: ~/project/ios/Runner.app.dSYM.zip
+
+# J O B S
+
+jobs:
+  lint:
+    executor: default_android
+    steps:
+      - checkout
+      - restore_dart_package_cache
+      - install_dart_packages
+      - save_dart_package_cache
+      - install_ruby_gems
+      - run_danger
+  #      - run_unit_test
+
+  deploy_ios:
+    executor: default_ios
+    parameters:
+      build_type:
+        type: enum
+        enum: ['alpha', 'beta', 'production']
+        default: alpha
+    steps:
+      - checkout
+      - install_flutter
+      - install_ruby_gems
+      - install_dart_packages
+      - run: sudo chmod +x ./currentPath.sh
+      - update_fastlane
+      - update_plugin
+      - run: sudo gem install cocoapods
+      - run: fastlane add_plugin diawi
+      - publish_ipa:
+          build_type: << parameters.build_type >>
+
+  deploy_android:
+    executor: default_android
+    parameters:
+      build_type:
+        type: enum
+        enum: ['alpha', 'beta', 'production']
+        default: alpha
+    steps:
+      - checkout
+#      - install_ruby_gems_android
+#      - setup_submodule
+#      - install_dart_packages
+#      - generate_code
+#      - publish_apk:
+#          build_type: << parameters.build_type >>
+
+# W O R K F L O W
+
+workflows:
+  check:
+    jobs:
+      - lint
+  deploy:
+    jobs:
+      - deploy_ios:
+          name: deploy_ios_alpha
+          build_type: alpha
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+){2}-alpha-[0-9]+$/
+            branches:
+              ignore: /.*/
+      - deploy_android:
+          name: deploy_android_alpha
+          build_type: alpha
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+){2}-alpha-[0-9]+$/
+            branches:
+              ignore: /.*/
+      - deploy_ios:
+          name: deploy_ios_beta
+          build_type: beta
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+){2}-beta-[0-9]+$/
+            branches:
+              ignore: /.*/
+      - deploy_android:
+          name: deploy_android_beta
+          build_type: beta
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+){2}-beta-[0-9]+$/
+            branches:
+              ignore: /.*/
+      - deploy_ios:
+          name: deploy_ios_production
+          build_type: production
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+){2}$/
+            branches:
+              ignore: /.*/
+      - deploy_android:
+          name: deploy_android_production
+          build_type: production
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+){2}$/
+            branches:
+              ignore: /.*/

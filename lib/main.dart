@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:async/async.dart';
+import 'package:boolean_selector/boolean_selector.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+  //TODO(anyone): Temporarily ignore this case in total badge icon
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Flutter Demo 3',
       theme: ThemeData(
         // This is the theme of your application.
         //
