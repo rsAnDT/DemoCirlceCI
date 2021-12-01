@@ -109,7 +109,7 @@ jobs:
         default: alpha_company
     steps:
       - checkout
-      - run: echo parameters.build_type
+      - run: echo "build on tag=\"<< parameters.build_type>>\""
 #      - install_ruby_gems_android
 #      - setup_submodule
 #      - install_dart_packages
