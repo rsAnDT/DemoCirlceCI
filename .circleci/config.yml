@@ -89,15 +89,15 @@ commands:
 # J O B S
 
 jobs:
-  lint:
-    executor: default_android
-    steps:
-      - checkout
-      - restore_dart_package_cache
-      - install_dart_packages
-      - save_dart_package_cache
-      - install_ruby_gems
-      - run_danger
+#   lint:
+#     executor: default_android
+#     steps:
+#       - checkout
+#       - restore_dart_package_cache
+#       - install_dart_packages
+#       - save_dart_package_cache
+#       - install_ruby_gems
+#       - run_danger
   #      - run_unit_test
 
   deploy_android:
@@ -109,7 +109,8 @@ jobs:
         default: alpha_company
     steps:
       - checkout
-      - run: echo "build on tag=\"<< parameters.build_type>>\""
+      - run: echo "build on tag=\"<< parameters.build_type >>\""
+      - run: echo "build on tag=\"<< pipeline.git.tag >>\""
 #      - install_ruby_gems_android
 #      - setup_submodule
 #      - install_dart_packages
@@ -120,9 +121,9 @@ jobs:
 # W O R K F L O W
 
 workflows:
-  check:
-    jobs:
-      - lint
+#   check:
+#     jobs:
+#       - lint
   deploy:
     jobs:
       - deploy_android:
