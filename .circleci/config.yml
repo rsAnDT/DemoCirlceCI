@@ -101,11 +101,6 @@ jobs:
   #      - run_unit_test
 
 publish_apk:
-    parameters:
-      build_type:
-        type: enum
-        enum: ['alpha_all', 'alpha_company']
-        default: alpha_company
     steps:
       - run:
           name: build apk
@@ -131,8 +126,7 @@ publish_apk:
 #      - setup_submodule
 #      - install_dart_packages
 #      - generate_code
-      - publish_apk:
-          build_type: << parameters.build_type >>
+      - publish_apk
 
 # W O R K F L O W
 
