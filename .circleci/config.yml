@@ -85,6 +85,12 @@ commands:
       - run:
           name: Update Plugin
           command: bundle exec fastlane update_plugins
+          
+  publish_apk:
+    steps:
+      - run:
+          name: build apk
+          command: bash build.sh << pipeline.git.tag >>
 
 # J O B S
 
@@ -99,12 +105,6 @@ jobs:
 #       - install_ruby_gems
 #       - run_danger
   #      - run_unit_test
-
-publish_apk:
-    steps:
-      - run:
-          name: build apk
-          command: bash build.sh << pipeline.git.tag >>
         
   deploy_android:
     executor: default_android
@@ -119,9 +119,6 @@ publish_apk:
           name: chmod
           command: chmod +x build.sh
       - run: echo "build on tag=\"<< pipeline.git.tag >>\""
-      - run:
-          name: run sh build
-          command: bash build.sh << pipeline.git.tag >>
 #      - install_ruby_gems_android
 #      - setup_submodule
 #      - install_dart_packages
